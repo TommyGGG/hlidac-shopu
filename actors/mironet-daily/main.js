@@ -234,15 +234,13 @@ async function main() {
           const imgElem = item.querySelector(".item_obr img");
           const oPriceElem = item.querySelector(".item_s_cena span");
           const stockElem = item.querySelector(".sklad6 span");
-          log.debug("Stock element:", stockElem?.innerHTML);
           
           const img = imgElem ? `https:${imgElem.getAttribute("src")}` : null;
           const link = linkElem ? linkElem.getAttribute("href") : null;
           const id = idElem ? idElem.innerText.trim().replace("Kód: ", "") : null;
           const name = linkElem ? linkElem.innerText.trim() : null;
           const price = priceElem ? priceElem.innerText.trim() : false;
-          const stock = stockElem ? stockElem.innerText.trim() : null;
-          log.debug("Processed stock value:", stock);
+          const inStock = stockElem ? Boolean(stockElem.innerText.trim()) : false;
           
           const dataItem = {
             img,
@@ -252,7 +250,7 @@ async function main() {
             discounted: !!oPriceElem,
             currentPrice: price ? toNumber(price) : null,
             breadCrumbs,
-            stock
+            inStock
           };
           if (oPriceElem) {
             const oPrice = oPriceElem.innerText.trim();
