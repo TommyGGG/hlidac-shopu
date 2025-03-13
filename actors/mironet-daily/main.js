@@ -234,6 +234,7 @@ async function main() {
           const imgElem = item.querySelector(".item_obr img");
           const oPriceElem = item.querySelector(".item_s_cena span");
           const stockElem = item.querySelector(".sklad6 span");
+          log.debug("Stock element:", stockElem?.innerHTML);
           
           const img = imgElem ? `https:${imgElem.getAttribute("src")}` : null;
           const link = linkElem ? linkElem.getAttribute("href") : null;
@@ -241,6 +242,7 @@ async function main() {
           const name = linkElem ? linkElem.innerText.trim() : null;
           const price = priceElem ? priceElem.innerText.trim() : false;
           const stock = stockElem ? stockElem.innerText.trim() : null;
+          log.debug("Processed stock value:", stock);
           
           const dataItem = {
             img,
