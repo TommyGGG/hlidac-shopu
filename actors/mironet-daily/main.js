@@ -7,6 +7,7 @@ import rollbar from "@hlidac-shopu/actors-common/rollbar.js";
 import { withPersistedStats } from "@hlidac-shopu/actors-common/stats.js";
 import { itemSlug, shopName } from "@hlidac-shopu/lib/shops.mjs";
 import { Actor, Dataset, LogLevel, log } from "apify";
+import { saveUniqProducts } from "@hlidac-shopu/actors-common/product.js";
 
 /** @typedef {import("linkedom/types/interface/document").Document} Document */
 
@@ -226,7 +227,7 @@ async function main() {
           }
         }
         const breadCrumbs = document.querySelectorAll("div#displaypath > a.CatParent").map(cat => cat.innerText.trim());
-        const requests = document.querySelectorAll(".item_b").flatMap(item => {
+        const products = document.querySelectorAll(".item_b").map(item => {
           const toNumber = p => parseInt(p.replace(/\s/g, "").match(/\d+/)[0]);
           const idElem = item.querySelector(".item_kod");
           const linkElem = item.querySelector(".nazev a");
@@ -242,38 +243,31 @@ async function main() {
           const price = priceElem ? priceElem.innerText.trim() : false;
           const inStock = stockElem ? Boolean(stockElem.innerText.trim()) : false;
           
-          const dataItem = {
+          /** @type {import("@hlidac-shopu/actors-common/types").Product} */
+          const product = {
             img,
             itemId: id,
             itemUrl: `${rootUrl}${link}`,
             itemName: name,
             discounted: !!oPriceElem,
             currentPrice: price ? toNumber(price) : null,
-            breadCrumbs,
-            inStock
+            inStock,
+            currency: "CZK",
+            shop,
+            slug: itemSlug(link)
           };
+
           if (oPriceElem) {
             const oPrice = oPriceElem.innerText.trim();
-            dataItem.originalPrice = toNumber(oPrice);
+            product.originalPrice = toNumber(oPrice);
           }
-          if (!processedIds.has(dataItem.itemId)) {
-            processedIds.add(dataItem.itemId);
-            const slug = itemSlug(dataItem.itemUrl);
-            return [
-              Dataset.pushData({
-                ...dataItem,
-                shop,
-                slug
-              })
-            ];
-          } else {
-            stats.inc("itemsDuplicity");
-            return null;
-          }
+
+          return product;
         });
-        stats.add("items", requests.length);
-        log.debug(`Found ${requests.length} items, storing them. ${request.url}`);
-        await Promise.all(requests);
+
+        stats.add("items", products.length);
+        log.debug(`Found ${products.length} items, storing them. ${request.url}`);
+        await saveUniqProducts({ products, stats, processedIds });
       }
     },
     async failedRequestHandler({ request }, error) {
