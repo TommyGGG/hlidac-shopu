@@ -3,7 +3,6 @@ import { HttpCrawler } from "@crawlee/http";
 import { ActorType } from "@hlidac-shopu/actors-common/actor-type.js";
 import { getInput, restPageUrls } from "@hlidac-shopu/actors-common/crawler.js";
 import { parseHTML, parseXML } from "@hlidac-shopu/actors-common/dom.js";
-import { uploadToKeboola } from "@hlidac-shopu/actors-common/keboola.js";
 import rollbar from "@hlidac-shopu/actors-common/rollbar.js";
 import { withPersistedStats } from "@hlidac-shopu/actors-common/stats.js";
 import { itemSlug, shopName } from "@hlidac-shopu/lib/shops.mjs";
@@ -234,11 +233,15 @@ async function main() {
           const priceElem = item.querySelector(".item_cena .item_b_cena");
           const imgElem = item.querySelector(".item_obr img");
           const oPriceElem = item.querySelector(".item_s_cena span");
+          const stockElem = item.querySelector(".sklad6 span");
+          
           const img = imgElem ? `https:${imgElem.getAttribute("src")}` : null;
           const link = linkElem ? linkElem.getAttribute("href") : null;
           const id = idElem ? idElem.innerText.trim().replace("Kód: ", "") : null;
           const name = linkElem ? linkElem.innerText.trim() : null;
           const price = priceElem ? priceElem.innerText.trim() : false;
+          const stock = stockElem ? stockElem.innerText.trim() : null;
+          
           const dataItem = {
             img,
             itemId: id,
@@ -246,7 +249,8 @@ async function main() {
             itemName: name,
             discounted: !!oPriceElem,
             currentPrice: price ? toNumber(price) : null,
-            breadCrumbs
+            breadCrumbs,
+            stock
           };
           if (oPriceElem) {
             const oPrice = oPriceElem.innerText.trim();
@@ -286,10 +290,8 @@ async function main() {
   await stats.save(true);
 
   if (!development) {
-    await uploadToKeboola(type !== ActorType.Full ? "mironet_bf" : "mironet");
-    log.info("upload to Keboola finished");
+    log.info("ACTOR - Finished");
   }
-  log.info("ACTOR - Finished");
 }
 
 await Actor.main(main);
